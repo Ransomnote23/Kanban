@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Shop Kanban Cards</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#1c1f26;
+    --ink-soft:#5a6070;
+    --paper:#f5f4f1;
+    --panel:#ffffff;
+    --line:#e4e2dc;
+    --charcoal:#20242c;
+    --charcoal-2:#2b303a;
+    --accent-a:#c81d5f;
+    --accent-b:#0f9e94;
+    --radius:14px;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:'Inter',system-ui,sans-serif;background:var(--paper);color:var(--ink);}
+  .mono{font-family:'IBM Plex Mono',monospace;}
+
+  /* ---------- Top bar ---------- */
+  .topbar{
+    background:var(--charcoal);
+    color:#fff;
+    padding:22px 28px 20px;
+    position:sticky; top:0; z-index:30;
+  }
+  .topbar-inner{display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:16px;max-width:1400px;margin:0 auto;}
+  .brand{display:flex;flex-direction:column;gap:4px;}
+  .brand-eyebrow{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#8a93a6;}
+  .brand h1{margin:0;font-size:24px;font-weight:800;letter-spacing:-0.01em;}
+  .stripe{height:4px;width:64px;border-radius:2px;background:linear-gradient(90deg,var(--accent-a),var(--accent-b));margin-top:6px;}
+  .topbar-actions{display:flex;gap:8px;flex-wrap:wrap;}
+
+  button{font-family:inherit;cursor:pointer;border:none;border-radius:9px;padding:10px 14px;font-size:13.5px;font-weight:600;transition:filter .12s, transform .05s;}
+  button:active{transform:translateY(1px);}
+  .btn-primary{background:#fff;color:var(--charcoal);}
+  .btn-primary:hover{filter:brightness(.94);}
+  .btn-ghost{background:#3a4050;color:#fff;}
+  .btn-ghost:hover{background:#454c5f;}
+  .btn-danger{background:#fff0f0;color:#b3271e;}
+  .btn-danger:hover{background:#ffe2e2;}
+  .btn-sm{padding:6px 10px;font-size:12px;border-radius:7px;}
+  .btn-block{width:100%;}
+  input[type=file]{display:none;}
+
+  /* ---------- Toolbar ---------- */
+  .toolbar{
+    max-width:1400px;margin:0 auto;padding:18px 28px 6px;
+    display:flex;gap:12px;align-items:center;flex-wrap:wrap;
+  }
+  .search{
+    flex:1;min-width:200px;padding:10px 14px;border-radius:9px;border:1px solid var(--line);
+    background:#fff;font-size:14px;
+  }
+  .chip{
+    padding:7px 13px;border-radius:999px;font-size:12.5px;font-weight:600;border:1px solid var(--line);
+    background:#fff;color:var(--ink-soft);white-space:nowrap;
+  }
+  .chip.active{background:var(--ink);color:#fff;border-color:var(--ink);}
+  .chip-row{display:flex;gap:8px;flex-wrap:wrap;}
+  .toolbar-right{display:flex;gap:8px;align-items:center;margin-left:auto;}
+  .count-pill{font-size:12.5px;color:var(--ink-soft);font-weight:600;}
+
+  /* ---------- Grid ---------- */
+  .grid-wrap{max-width:1400px;margin:0 auto;padding:14px 28px 60px;}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:22px;}
+  .empty-state{padding:60px 20px;text-align:center;color:var(--ink-soft);}
+  .empty-state h3{color:var(--ink);margin-bottom:6px;}
+
+  /* ---------- Card ---------- */
+  .card-slot{position:relative;}
+  .card-slot .select-box{
+    position:absolute;top:8px;left:8px;z-index:5;width:22px;height:22px;border-radius:6px;
+    border:2px solid #fff;background:rgba(255,255,255,.85);cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.25);
+    display:flex;align-items:center;justify-content:center;
+  }
+  .card-slot .select-box.checked{background:var(--ink);border-color:var(--ink);}
+  .card-slot .select-box svg{width:14px;height:14px;stroke:#fff;display:none;}
+  .card-slot .select-box.checked svg{display:block;}
+  .card-slot .hover-actions{
+    position:absolute;top:8px;right:8px;z-index:5;display:flex;gap:4px;opacity:0;transition:opacity .12s;
+  }
+  .card-slot:hover .hover-actions{opacity:1;}
+  .icon-btn{
+    width:26px;height:26px;border-radius:6px;background:rgba(255,255,255,.9);display:flex;align-items:center;justify-content:center;
+    box-shadow:0 1px 3px rgba(0,0,0,.25);
+  }
+  .icon-btn svg{width:14px;height:14px;stroke:var(--ink);}
+  .copies-tag{
+    position:absolute;bottom:8px;right:8px;z-index:5;background:rgba(0,0,0,.65);color:#fff;font-size:11px;font-weight:700;
+    padding:3px 7px;border-radius:6px;font-family:'IBM Plex Mono',monospace;
+  }
+
+  .kcard{
+    width:100%; aspect-ratio:3/5; background:#fff; border-radius:10px; overflow:hidden;
+    box-shadow:0 1px 2px rgba(20,20,30,.06), 0 8px 20px rgba(20,20,30,.10);
+    display:flex;flex-direction:column;cursor:pointer;border:1px solid #eceae4;
+    -webkit-print-color-adjust:exact; print-color-adjust:exact; color-adjust:exact;
+  }
+  .kcard *{-webkit-print-color-adjust:exact; print-color-adjust:exact; color-adjust:exact;}
+  .kcard-head{padding:12px 12px 8px;display:flex;justify-content:space-between;gap:8px;}
+  .kcard-titles h3{margin:0;font-size:15px;line-height:1.18;font-weight:800;color:var(--ink);}
+  .kcard-titles .pn{margin-top:4px;font-size:10.5px;color:var(--ink-soft);font-family:'IBM Plex Mono',monospace;font-weight:600;}
+  .kcard-head img.qr{width:44px;height:44px;flex:none;image-rendering:pixelated;}
+  .kcard-divider{height:3px;margin:0 12px;border-radius:2px;}
+  .kcard-rows{padding:10px 12px 6px;display:flex;flex-direction:column;gap:7px;}
+  .kcard-row{display:flex;align-items:flex-start;gap:8px;}
+  .kcard-row svg{width:15px;height:15px;flex:none;margin-top:1px;stroke:var(--ink);}
+  .kcard-row .rlabel{font-size:8px;text-transform:uppercase;letter-spacing:.08em;font-weight:700;display:block;margin-bottom:1px;}
+  .kcard-row .rvalue{font-size:11.5px;font-weight:600;color:var(--ink);line-height:1.2;}
+  .kcard-image{flex:1;display:flex;align-items:center;justify-content:center;padding:4px 14px;min-height:0;}
+  .kcard-image img{max-width:100%;max-height:100%;object-fit:contain;}
+  .kcard-image .placeholder{width:70%;aspect-ratio:1;border:2px dashed #dcdad3;border-radius:10px;}
+  .kcard-footer{padding:9px 10px;text-align:center;font-weight:800;font-size:12px;letter-spacing:.03em;}
+
+  /* ---------- Modal ---------- */
+  .overlay{position:fixed;inset:0;background:rgba(20,22,28,.5);display:flex;align-items:center;justify-content:center;z-index:100;padding:20px;}
+  .modal{background:#fff;border-radius:16px;width:100%;max-width:520px;max-height:90vh;overflow:auto;padding:26px 26px 22px;position:relative;}
+  .modal-close{
+    position:absolute;top:16px;right:16px;width:30px;height:30px;border-radius:8px;background:#f2f1ee;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .modal-close svg{width:16px;height:16px;stroke:var(--ink-soft);}
+  .modal-close:hover{background:#e8e6e0;}
+  .modal h2{margin:0 0 4px;font-size:19px;font-weight:800;}
+  .modal .sub{color:var(--ink-soft);font-size:13px;margin-bottom:18px;}
+  .field{margin-bottom:14px;}
+  .field label{display:block;font-size:12px;font-weight:700;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px;}
+  .field input, .field select, .field textarea{
+    width:100%;padding:10px 12px;border:1.5px solid var(--line);border-radius:8px;font-size:14px;font-family:inherit;background:#fbfaf8;
+  }
+  .field input:focus, .field select:focus, .field textarea:focus{outline:none;border-color:var(--ink);background:#fff;}
+  .field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:18px;}
+  .swatch-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px;}
+  .swatch{width:28px;height:28px;border-radius:8px;cursor:pointer;border:2px solid transparent;}
+  .swatch.active{border-color:var(--ink);}
+  .cat-list{display:flex;flex-direction:column;gap:8px;margin-bottom:16px;}
+  .cat-row{display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px solid var(--line);border-radius:9px;}
+  .cat-dot{width:14px;height:14px;border-radius:4px;flex:none;}
+  .cat-row .name{flex:1;font-weight:600;font-size:13.5px;}
+  .helptext{font-size:11.5px;color:var(--ink-soft);margin-top:5px;line-height:1.4;}
+
+  /* ---------- Print ---------- */
+  #print-area{display:none;}
+  @media print{
+    *{-webkit-print-color-adjust:exact !important; print-color-adjust:exact !important; color-adjust:exact !important;}
+    body *{visibility:hidden;}
+    #print-area, #print-area *{visibility:visible;}
+    #print-area{display:block;position:absolute;top:0;left:0;width:100%;}
+    @page{size:letter;margin:0.28in;}
+    .print-page{
+      display:grid;grid-template-columns:repeat(2,3in);grid-auto-rows:5in;gap:0.18in;
+      justify-content:center; page-break-after:always;
+    }
+    .print-page:last-child{page-break-after:auto;}
+    .print-page .kcard{box-shadow:none;border:1px solid #ccc;}
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <span class="brand-eyebrow">Small Car Performance · Floor Stock</span>
+      <h1>Shop Kanban Cards</h1>
+      <div class="stripe"></div>
+    </div>
+    <div class="topbar-actions">
+      <span id="saveStatus" class="count-pill" style="color:#9aa2b3;margin-right:6px;"></span>
+      <button class="btn-ghost" id="btnCategories">Categories</button>
+      <button class="btn-ghost" id="btnImport">Import CSV</button>
+      <button class="btn-ghost" id="btnExport">Export CSV</button>
+      <button class="btn-ghost" id="btnBackup">Back up now</button>
+      <button class="btn-ghost" id="btnRestore">Restore backup</button>
+      <input type="file" id="fileRestore" accept=".json">
+      <input type="file" id="fileImport" accept=".csv">
+      <button class="btn-primary" id="btnAddPart">+ Add Part</button>
+    </div>
+  </div>
+</div>
+
+<div class="toolbar">
+  <input class="search" id="searchInput" placeholder="Search by name, part number, or supplier…">
+  <div class="chip-row" id="categoryChips"></div>
+  <div class="toolbar-right">
+    <span class="count-pill" id="selectionCount">0 selected</span>
+    <button class="btn-sm btn-ghost" id="btnSelectAll">Select all</button>
+    <button class="btn-sm btn-ghost" id="btnClearSel">Clear</button>
+    <button class="btn-primary btn-sm" id="btnPrint">Print selected</button>
+  </div>
+</div>
+
+<div class="grid-wrap">
+  <div class="grid" id="cardGrid"></div>
+  <div class="empty-state" id="emptyState" style="display:none;">
+    <h3>No parts yet</h3>
+    <p>Add your first part, or import a CSV to bring in a batch at once.</p>
+  </div>
+</div>
+
+<div id="print-area"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script>
+/* ================== SUPABASE CONFIG — fill these in ==================
+   1. Create a project at supabase.com
+   2. Run the SQL from the setup guide in the SQL editor
+   3. Settings → API → paste your Project URL and anon public key below
+======================================================================= */
+const SUPABASE_URL = 'YOUR_SUPABASE_PROJECT_URL';
+const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+const sb = (SUPABASE_URL.startsWith('http')) ? supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+const ROW_ID = 'main';
+
+/* ---------------- Icons ---------------- */
+const ICONS = {
+  minimum: `<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8l-9-5-9 5v8l9 5 9-5V8z"/><path d="M3 8l9 5 9-5"/><path d="M12 13v8"/></svg>`,
+  location: `<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 6.5-9 12-9 12s-9-5.5-9-12a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>`,
+  reorder: `<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.5 9a9 9 0 0 1 14.6-3.4L23 10"/><path d="M20.5 15a9 9 0 0 1-14.6 3.4L1 14"/></svg>`,
+  supplier: `<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h16l-1.5 10a2 2 0 0 1-2 1.8H7.5a2 2 0 0 1-2-1.8L4 9z"/><path d="M8 9V7a4 4 0 0 1 8 0v2"/><path d="M9 13v3"/><path d="M15 13v3"/></svg>`,
+  check: `<svg viewBox="0 0 24 24" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>`,
+  edit: `<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>`,
+  copy: `<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>`,
+  trash: `<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>`,
+  close: `<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18"/><path d="M6 6l12 12"/></svg>`,
+};
+
+/* ---------------- State ---------------- */
+const SWATCHES = ['#c81d5f','#0f9e94','#e08a1e','#4f5fd6','#3a7d3a','#8a4fd6','#495160','#c23b3b'];
+
+const SEED_DATA = {
+  parts: [
+    {id:'p_demo1', name:'PETG Filament, Choc Brown', partNumber:'PETG-1KG-BRN', categoryId:'shop-supplies',
+     minimum:'1', location:'3D Print Room, Under Table', reorderQty:'2', supplier:'California Filament',
+     imageUrl:'', webAddress:'', qrData:'', copies:1},
+    {id:'p_demo2', name:'Autoreset Breaker, 10A', partNumber:'71122', categoryId:'upt-assembly',
+     minimum:'40', location:'Scout Room', reorderQty:'40', supplier:'Del City',
+     imageUrl:'', webAddress:'', qrData:'', copies:1},
+  ],
+  categories: [
+    {id:'shop-supplies', name:'SHOP SUPPLIES', color:'#c81d5f'},
+    {id:'upt-assembly', name:'UPT ASSEMBLY', color:'#0f9e94'},
+  ],
+};
+
+let state = { parts: [], categories: [] };
+let selected = new Set();
+let filterCategory = 'all';
+let searchTerm = '';
+let editingPartId = null;
+
+/* ---------------- Persistence (Supabase) ---------------- */
+async function loadData(){
+  const statusEl = document.getElementById('saveStatus');
+  if(!sb){
+    statusEl.textContent = '⚠ Supabase not configured yet';
+    statusEl.style.color = '#e2b93b';
+    state = JSON.parse(JSON.stringify(SEED_DATA));
+    render();
+    return;
+  }
+  statusEl.textContent = 'Loading…';
+  try{
+    const { data, error } = await sb.from('kanban_store').select('data').eq('id', ROW_ID).maybeSingle();
+    if(error) throw error;
+    if(data && data.data){
+      state.parts = data.data.parts || [];
+      state.categories = (data.data.categories && data.data.categories.length) ? data.data.categories : SEED_DATA.categories;
+    } else {
+      // First run — no row yet. Seed the database so there's something to look at.
+      state = JSON.parse(JSON.stringify(SEED_DATA));
+      await sb.from('kanban_store').upsert({ id: ROW_ID, data: { parts: state.parts, categories: state.categories }, updated_at: new Date().toISOString() });
+    }
+    statusEl.textContent = '☁ Synced';
+    statusEl.style.color = '#9aa2b3';
+  }catch(e){
+    console.error('Supabase load failed', e);
+    statusEl.textContent = '⚠ Could not load — check Supabase config';
+    statusEl.style.color = '#e2543b';
+    state = JSON.parse(JSON.stringify(SEED_DATA));
+  }
+  render();
+}
+async function saveData(){
+  const statusEl = document.getElementById('saveStatus');
+  if(!sb){
+    statusEl.textContent = '⚠ Not saved — Supabase not configured';
+    statusEl.style.color = '#e2543b';
+    return;
+  }
+  statusEl.textContent = 'Saving…';
+  statusEl.style.color = '#9aa2b3';
+  try{
+    const { error } = await sb.from('kanban_store').upsert({
+      id: ROW_ID,
+      data: { parts: state.parts, categories: state.categories },
+      updated_at: new Date().toISOString(),
+    });
+    if(error) throw error;
+    statusEl.textContent = '☁ Synced';
+    statusEl.style.color = '#9aa2b3';
+  }catch(e){
+    console.error('Supabase save failed', e);
+    statusEl.textContent = '⚠ Save failed — see console';
+    statusEl.style.color = '#e2543b';
+  }
+}
+
+function uid(){ return 'p_'+Math.random().toString(36).slice(2,10); }
+
+function getCategory(id){
+  return state.categories.find(c=>c.id===id) || {name:'UNSORTED', color:'#8a93a6'};
+}
+
+/* ---------------- QR ---------------- */
+function qrUrl(data){
+  return `https://api.qrserver.com/v1/create-qr-code/?size=160x160&margin=0&data=${encodeURIComponent(data||' ')}`;
+}
+// Plain-text reorder summary — scanning just displays this on the phone, no link/page needed.
+function reorderText(part){
+  const cat = getCategory(part.categoryId);
+  return [
+    'REORDER INFO',
+    part.name || '',
+    `P/N: ${part.partNumber || '—'}`,
+    `Category: ${cat.name}`,
+    `Minimum: ${part.minimum || '—'}`,
+    `Reorder Qty: ${part.reorderQty || '—'}`,
+    `Location: ${part.location || '—'}`,
+    `Supplier: ${part.supplier || '—'}`,
+  ].join('\n');
+}
+
+/* ---------------- Card render ---------------- */
+function cardInnerHTML(part){
+  const cat = getCategory(part.categoryId);
+  const img = part.imageUrl
+    ? `<img src="${escapeAttr(part.imageUrl)}" alt="">`
+    : `<div class="placeholder"></div>`;
+  return `
+    <div class="kcard-head">
+      <div class="kcard-titles">
+        <h3>${escapeHTML(part.name)}</h3>
+        <div class="pn">P/N: ${escapeHTML(part.partNumber||'—')}</div>
+      </div>
+      <img class="qr" src="${qrUrl(part.qrData || part.webAddress || reorderText(part))}" alt="QR">
+    </div>
+    <div class="kcard-divider" style="background:${cat.color}"></div>
+    <div class="kcard-rows">
+      <div class="kcard-row">${ICONS.minimum}<div><span class="rlabel" style="color:${cat.color}">Minimum</span><span class="rvalue">${escapeHTML(part.minimum||'—')}</span></div></div>
+      <div class="kcard-row">${ICONS.location}<div><span class="rlabel" style="color:${cat.color}">Location</span><span class="rvalue">${escapeHTML(part.location||'—')}</span></div></div>
+      <div class="kcard-row">${ICONS.reorder}<div><span class="rlabel" style="color:${cat.color}">Reorder</span><span class="rvalue">${escapeHTML(part.reorderQty||'—')}</span></div></div>
+      <div class="kcard-row">${ICONS.supplier}<div><span class="rlabel" style="color:${cat.color}">Supplier</span><span class="rvalue">${escapeHTML(part.supplier||'—')}</span></div></div>
+    </div>
+    <div class="kcard-image">${img}</div>
+    <div class="kcard-footer" style="background:${cat.color}22;color:${cat.color}">${escapeHTML(cat.name)}</div>
+  `;
+}
+
+function escapeHTML(s){
+  return String(s==null?'':s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function escapeAttr(s){ return escapeHTML(s); }
+
+/* ---------------- Filtering ---------------- */
+function filteredParts(){
+  return state.parts.filter(p=>{
+    if(filterCategory!=='all' && p.categoryId!==filterCategory) return false;
+    if(searchTerm){
+      const hay = `${p.name} ${p.partNumber} ${p.supplier}`.toLowerCase();
+      if(!hay.includes(searchTerm.toLowerCase())) return false;
+    }
+    return true;
+  });
+}
+
+/* ---------------- Render ---------------- */
+function render(){
+  renderChips();
+  renderGrid();
+  document.getElementById('selectionCount').textContent = `${selected.size} selected`;
+}
+
+function renderChips(){
+  const wrap = document.getElementById('categoryChips');
+  const chips = [{id:'all', name:'All'}, ...state.categories];
+  wrap.innerHTML = chips.map(c=>{
+    const active = filterCategory===c.id;
+    return `<button class="chip ${active?'active':''}" data-cat="${c.id}">${escapeHTML(c.name)}</button>`;
+  }).join('');
+  wrap.querySelectorAll('.chip').forEach(el=>{
+    el.addEventListener('click', ()=>{ filterCategory = el.dataset.cat; render(); });
+  });
+}
+
+function renderGrid(){
+  const grid = document.getElementById('cardGrid');
+  const list = filteredParts();
+  document.getElementById('emptyState').style.display = (state.parts.length===0) ? 'block' : 'none';
+  grid.innerHTML = list.map(p=>{
+    const isSel = selected.has(p.id);
+    return `
+    <div class="card-slot" data-id="${p.id}">
+      <div class="select-box ${isSel?'checked':''}" data-action="select">${ICONS.check}</div>
+      <div class="hover-actions">
+        <div class="icon-btn" data-action="edit" title="Edit">${ICONS.edit}</div>
+        <div class="icon-btn" data-action="duplicate" title="Duplicate">${ICONS.copy}</div>
+        <div class="icon-btn" data-action="delete" title="Delete">${ICONS.trash}</div>
+      </div>
+      <div class="kcard" data-action="edit">${cardInnerHTML(p)}</div>
+      <div class="copies-tag">×${p.copies||1}</div>
+    </div>`;
+  }).join('');
+
+  grid.querySelectorAll('.card-slot').forEach(slot=>{
+    const id = slot.dataset.id;
+    slot.querySelector('[data-action="select"]').addEventListener('click', (e)=>{
+      e.stopPropagation();
+      if(selected.has(id)) selected.delete(id); else selected.add(id);
+      render();
+    });
+    slot.querySelector('[data-action="edit"]').addEventListener('click', ()=> openPartModal(id));
+    slot.querySelector('.kcard').addEventListener('click', ()=> openPartModal(id));
+    slot.querySelector('[data-action="duplicate"]').addEventListener('click', (e)=>{
+      e.stopPropagation(); duplicatePart(id);
+    });
+    slot.querySelector('[data-action="delete"]').addEventListener('click', (e)=>{
+      e.stopPropagation(); deletePart(id);
+    });
+  });
+}
+
+/* ---------------- Part CRUD ---------------- */
+function duplicatePart(id){
+  const p = state.parts.find(x=>x.id===id);
+  if(!p) return;
+  const copy = {...p, id: uid(), name: p.name + ' (copy)'};
+  state.parts.push(copy);
+  saveData(); render();
+}
+function deletePart(id){
+  if(!confirm('Delete this part card? This cannot be undone.')) return;
+  state.parts = state.parts.filter(p=>p.id!==id);
+  selected.delete(id);
+  saveData(); render();
+}
+
+function openPartModal(id){
+  editingPartId = id || null;
+  const part = id ? state.parts.find(p=>p.id===id) : {
+    name:'', partNumber:'', categoryId: state.categories[0]?.id, minimum:'', location:'',
+    reorderQty:'', supplier:'', imageUrl:'', qrData:'', copies:1
+  };
+  const catOptions = state.categories.map(c=>`<option value="${c.id}" ${c.id===part.categoryId?'selected':''}>${escapeHTML(c.name)}</option>`).join('');
+
+  showOverlay(`
+    <div class="modal">
+      <div class="modal-close" data-action="cancel">${ICONS.close}</div>
+      <h2>${id?'Edit part':'Add part'}</h2>
+      <div class="sub">Fields map directly onto the printed card.</div>
+      <form id="partForm">
+        <div class="field"><label>Item name</label><input name="name" required value="${escapeAttr(part.name)}" placeholder="e.g. Autoreset Breaker, 10A"></div>
+        <div class="field-row">
+          <div class="field"><label>Part number</label><input name="partNumber" value="${escapeAttr(part.partNumber)}" placeholder="P/N"></div>
+          <div class="field"><label>Category</label><select name="categoryId">${catOptions}</select></div>
+        </div>
+        <div class="field-row">
+          <div class="field"><label>Minimum</label><input name="minimum" value="${escapeAttr(part.minimum)}" placeholder="e.g. 40"></div>
+          <div class="field"><label>Reorder qty</label><input name="reorderQty" value="${escapeAttr(part.reorderQty)}" placeholder="e.g. 40"></div>
+        </div>
+        <div class="field"><label>Location</label><input name="location" value="${escapeAttr(part.location)}" placeholder="e.g. Scout Room"></div>
+        <div class="field"><label>Supplier</label><input name="supplier" value="${escapeAttr(part.supplier)}" placeholder="e.g. Del City"></div>
+        <div class="field"><label>Web address (opens when scanned)</label><input name="webAddress" value="${escapeAttr(part.webAddress)}" placeholder="https://supplier.com/product-page"></div>
+        <div class="field"><label>Image URL (optional)</label><input name="imageUrl" value="${escapeAttr(part.imageUrl)}" placeholder="https://…"></div>
+        <div class="field-row">
+          <div class="field"><label>QR override (optional)</label><input name="qrData" value="${escapeAttr(part.qrData)}" placeholder="Leave blank to use web address"></div>
+          <div class="field"><label># copies to print</label><input name="copies" type="number" min="1" value="${part.copies||1}"></div>
+        </div>
+        <div class="helptext">Scanning the QR opens the web address above. If that's blank, it falls back to showing this card's reorder details as plain text instead. The override field takes priority over both.</div>
+        <div class="modal-actions">
+          <button type="button" class="btn-ghost" data-action="cancel">Cancel</button>
+          <button type="submit" class="btn-primary">${id?'Save changes':'Add part'}</button>
+        </div>
+      </form>
+    </div>
+  `);
+
+  document.getElementById('partForm').addEventListener('submit', (e)=>{
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    const data = Object.fromEntries(fd.entries());
+    data.copies = parseInt(data.copies)||1;
+    if(editingPartId){
+      const idx = state.parts.findIndex(p=>p.id===editingPartId);
+      state.parts[idx] = {...state.parts[idx], ...data};
+    } else {
+      state.parts.push({id: uid(), ...data});
+    }
+    saveData(); closeOverlay(); render();
+  });
+  document.querySelectorAll('[data-action="cancel"]').forEach(el=>el.addEventListener('click', closeOverlay));
+}
+
+/* ---------------- Category management ---------------- */
+function openCategoryModal(){
+  showOverlay(`
+    <div class="modal">
+      <div class="modal-close" data-action="cancel">${ICONS.close}</div>
+      <h2>Manage categories</h2>
+      <div class="sub">Categories set the accent color and footer label on each card.</div>
+      <div class="cat-list" id="catList"></div>
+      <div class="field"><label>New category name</label><input id="newCatName" placeholder="e.g. WIRE PREP"></div>
+      <div class="field"><label>Color</label><div class="swatch-row" id="swatchRow"></div></div>
+      <div class="modal-actions">
+        <button type="button" class="btn-ghost" data-action="cancel">Close</button>
+        <button type="button" class="btn-primary" id="addCatBtn">Add category</button>
+      </div>
+    </div>
+  `);
+  let chosenColor = SWATCHES[0];
+  const swatchRow = document.getElementById('swatchRow');
+  swatchRow.innerHTML = SWATCHES.map((c,i)=>`<div class="swatch ${i===0?'active':''}" style="background:${c}" data-color="${c}"></div>`).join('');
+  swatchRow.querySelectorAll('.swatch').forEach(sw=>{
+    sw.addEventListener('click', ()=>{
+      swatchRow.querySelectorAll('.swatch').forEach(s=>s.classList.remove('active'));
+      sw.classList.add('active'); chosenColor = sw.dataset.color;
+    });
+  });
+  renderCatList();
+  function renderCatList(){
+    document.getElementById('catList').innerHTML = state.categories.map(c=>`
+      <div class="cat-row">
+        <div class="cat-dot" style="background:${c.color}"></div>
+        <div class="name">${escapeHTML(c.name)}</div>
+        <div class="icon-btn" data-cat-del="${c.id}" title="Delete">${ICONS.trash}</div>
+      </div>`).join('');
+    document.querySelectorAll('[data-cat-del]').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const cid = btn.dataset.catDel;
+        const inUse = state.parts.some(p=>p.categoryId===cid);
+        if(inUse){ alert('Reassign or delete parts using this category first.'); return; }
+        state.categories = state.categories.filter(c=>c.id!==cid);
+        saveData(); renderCatList(); render();
+      });
+    });
+  }
+  document.getElementById('addCatBtn').addEventListener('click', ()=>{
+    const name = document.getElementById('newCatName').value.trim();
+    if(!name) return;
+    state.categories.push({id: uid(), name: name.toUpperCase(), color: chosenColor});
+    saveData(); renderCatList(); render();
+    document.getElementById('newCatName').value='';
+  });
+  document.querySelectorAll('[data-action="cancel"]').forEach(el=>el.addEventListener('click', closeOverlay));
+}
+
+/* ---------------- Overlay helper ---------------- */
+function showOverlay(html){
+  closeOverlay();
+  const wrap = document.createElement('div');
+  wrap.className = 'overlay';
+  wrap.id = 'activeOverlay';
+  wrap.innerHTML = html;
+  let downOnOverlay = false;
+  wrap.addEventListener('mousedown', (e)=>{ downOnOverlay = (e.target===wrap); });
+  wrap.addEventListener('click', (e)=>{ if(e.target===wrap && downOnOverlay) closeOverlay(); });
+  document.body.appendChild(wrap);
+}
+function closeOverlay(){
+  const el = document.getElementById('activeOverlay');
+  if(el) el.remove();
+}
+
+/* ---------------- CSV import/export ---------------- */
+function exportCSV(){
+  const rows = state.parts.map(p=>({
+    name:p.name, partNumber:p.partNumber, category: getCategory(p.categoryId).name,
+    minimum:p.minimum, location:p.location, reorderQty:p.reorderQty, supplier:p.supplier,
+    webAddress:p.webAddress, imageUrl:p.imageUrl, qrData:p.qrData, copies:p.copies
+  }));
+  const csv = Papa.unparse(rows);
+  const blob = new Blob([csv], {type:'text/csv'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'kanban-parts.csv';
+  a.click();
+}
+
+function restoreBackup(file){
+  const reader = new FileReader();
+  reader.onload = (e)=>{
+    let payload;
+    try{
+      payload = JSON.parse(e.target.result);
+    }catch(err){
+      alert('That file isn\'t valid JSON — make sure you\'re selecting a backup downloaded from "Back up now".');
+      return;
+    }
+    if(!payload || !Array.isArray(payload.parts) || !Array.isArray(payload.categories)){
+      alert('That file doesn\'t look like a kanban catalog backup.');
+      return;
+    }
+    const stamp = payload.exportedAt ? new Date(payload.exportedAt).toLocaleString() : 'an unknown date';
+    const msg = `Restore this backup from ${stamp}?\n\nIt contains ${payload.parts.length} part(s) and ${payload.categories.length} categor${payload.categories.length===1?'y':'ies'}.\n\nThis will REPLACE everything currently in your catalog (${state.parts.length} part(s) now). This can't be undone.`;
+    if(!confirm(msg)) return;
+    state.parts = payload.parts;
+    state.categories = payload.categories;
+    selected.clear();
+    saveData();
+    render();
+    alert('Backup restored.');
+  };
+  reader.readAsText(file);
+}
+
+function backupNow(){
+  const payload = {
+    exportedAt: new Date().toISOString(),
+    categories: state.categories,
+    parts: state.parts,
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], {type:'application/json'});
+  const stamp = new Date().toISOString().slice(0,10);
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `kanban-catalog-backup-${stamp}.json`;
+  a.click();
+  const statusEl = document.getElementById('saveStatus');
+  const prev = statusEl.textContent;
+  statusEl.textContent = '✓ Backup downloaded';
+  setTimeout(()=>{ statusEl.textContent = prev; }, 2500);
+}
+
+function importCSV(file){
+  Papa.parse(file, {
+    header:true, skipEmptyLines:true,
+    complete: (res)=>{
+      res.data.forEach(row=>{
+        let cat = state.categories.find(c=>c.name.toLowerCase()===(row.category||'').toLowerCase());
+        if(!cat && row.category){
+          cat = {id:uid(), name:row.category.toUpperCase(), color: SWATCHES[state.categories.length % SWATCHES.length]};
+          state.categories.push(cat);
+        }
+        state.parts.push({
+          id: uid(),
+          name: row.name||'', partNumber: row.partNumber||'',
+          categoryId: cat ? cat.id : state.categories[0]?.id,
+          minimum: row.minimum||'', location: row.location||'',
+          reorderQty: row.reorderQty||'', supplier: row.supplier||'',
+          webAddress: row.webAddress||'', imageUrl: row.imageUrl||'', qrData: row.qrData||'',
+          copies: parseInt(row.copies)||1,
+        });
+      });
+      saveData(); render();
+      alert(`Imported ${res.data.length} part(s).`);
+    },
+    error: (err)=> alert('Import failed: '+err.message)
+  });
+}
+
+/* ---------------- Print ---------------- */
+function printSelected(){
+  const chosen = state.parts.filter(p=>selected.has(p.id));
+  if(chosen.length===0){ alert('Select at least one card to print.'); return; }
+  let cardsHTML = [];
+  chosen.forEach(p=>{
+    const n = p.copies || 1;
+    for(let i=0;i<n;i++){
+      cardsHTML.push(`<div class="kcard">${cardInnerHTML(p)}</div>`);
+    }
+  });
+  const perPage = 4;
+  let pages = [];
+  for(let i=0;i<cardsHTML.length;i+=perPage){
+    pages.push(`<div class="print-page">${cardsHTML.slice(i,i+perPage).join('')}</div>`);
+  }
+  document.getElementById('print-area').innerHTML = pages.join('');
+  setTimeout(()=> window.print(), 150);
+}
+
+/* ---------------- Wire up ---------------- */
+document.getElementById('btnAddPart').addEventListener('click', ()=> openPartModal(null));
+document.getElementById('btnCategories').addEventListener('click', openCategoryModal);
+document.getElementById('btnExport').addEventListener('click', exportCSV);
+document.getElementById('btnBackup').addEventListener('click', backupNow);
+document.getElementById('btnRestore').addEventListener('click', ()=> document.getElementById('fileRestore').click());
+document.getElementById('fileRestore').addEventListener('change', (e)=>{
+  if(e.target.files[0]) restoreBackup(e.target.files[0]);
+  e.target.value = '';
+});
+document.getElementById('btnImport').addEventListener('click', ()=> document.getElementById('fileImport').click());
+document.getElementById('fileImport').addEventListener('change', (e)=>{
+  if(e.target.files[0]) importCSV(e.target.files[0]);
+  e.target.value = '';
+});
+document.getElementById('btnPrint').addEventListener('click', printSelected);
+document.getElementById('btnSelectAll').addEventListener('click', ()=>{
+  filteredParts().forEach(p=>selected.add(p.id)); render();
+});
+document.getElementById('btnClearSel').addEventListener('click', ()=>{ selected.clear(); render(); });
+document.getElementById('searchInput').addEventListener('input', (e)=>{ searchTerm = e.target.value; render(); });
+
+loadData();
+</script>
+</body>
+</html>
