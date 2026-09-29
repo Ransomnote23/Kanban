@@ -325,7 +325,7 @@ function getCategory(id){
 
 /* ---------------- QR ---------------- */
 function qrUrl(data){
-  return `https://api.qrserver.com/v1/create-qr-code/?size=400x400&margin=0&ecc=M&data=${encodeURIComponent(data||' ')}`;
+  return `https://api.qrserver.com/v1/create-qr-code/?size=400x400&margin=0&ecc=L&data=${encodeURIComponent(data||' ')}`;
 }
 // Plain-text reorder summary — scanning just displays this on the phone, no link/page needed.
 function reorderText(part){
@@ -496,11 +496,35 @@ function openPartModal(id){
     </div>
   `);
 
-  document.getElementById('partForm').addEventListener('submit', (e)=>{
+  /* ---------------- URL cleanup for QR density ---------------- */
+// Long tracking-laden URLs (Amazon especially) force a denser QR at the same
+// physical size, which prints too fine to scan. Strip to the essentials.
+function cleanWebAddress(url){
+  if(!url) return url;
+  url = url.trim();
+  try{
+    const u = new URL(url);
+    // Amazon: collapse to the canonical /dp/ASIN form — drops all tracking params.
+    if(/(^|\.)amazon\.[a-z.]+$/i.test(u.hostname)){
+      const m = u.pathname.match(/\/(?:dp|gp\/product)\/([A-Z0-9]{10})/i);
+      if(m){
+        return `https://www.amazon.com/dp/${m[1].toUpperCase()}`;
+      }
+    }
+    // Everything else: keep the path, drop query string and hash — usually just
+    // tracking/session junk for a product page link.
+    return `${u.origin}${u.pathname}`.replace(/\/$/, '') || url;
+  }catch(e){
+    return url; // not a valid absolute URL — leave it as typed
+  }
+}
+
+document.getElementById('partForm').addEventListener('submit', (e)=>{
     e.preventDefault();
     const fd = new FormData(e.target);
     const data = Object.fromEntries(fd.entries());
     data.copies = parseInt(data.copies)||1;
+    if(data.webAddress) data.webAddress = cleanWebAddress(data.webAddress);
     if(editingPartId){
       const idx = state.parts.findIndex(p=>p.id===editingPartId);
       state.parts[idx] = {...state.parts[idx], ...data};
