@@ -149,10 +149,10 @@
   /* ---------- Print ---------- */
   #print-area{display:none;}
   @media print{
-    *{-webkit-print-color-adjust:exact !important; print-color-adjust:exact !important; color-adjust:exact !important;}
-    body *{visibility:hidden;}
-    #print-area, #print-area *{visibility:visible;}
-    #print-area{display:block;position:absolute;top:0;left:0;width:100%;}
+    html, body{background:#fff !important;}
+    .topbar, .toolbar, .grid-wrap{display:none !important;}
+    #print-area{display:block;}
+    #print-area, #print-area *{-webkit-print-color-adjust:exact !important; print-color-adjust:exact !important; color-adjust:exact !important;}
     @page{size:letter;margin:0.28in;}
     .print-page{
       display:grid;grid-template-columns:repeat(2,3in);grid-auto-rows:5in;gap:0.18in;
